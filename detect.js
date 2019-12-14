@@ -3,8 +3,6 @@ const cocoSsd = require("@tensorflow-models/coco-ssd");
 const fs = require("fs");
 const { createCanvas, loadImage } = require("canvas");
 
-const font = "12px helvetica";
-
 // https://github.com/tensorflow/tfjs-models/blob/master/coco-ssd/src/classes.ts
 const INTERESTED_CLASSES = [
   "person",
@@ -15,7 +13,9 @@ const INTERESTED_CLASSES = [
   "truck"
 ];
 
-let counter = 0;
+const CROP_PADDING_RAIO = 1.5;
+
+let counters = {};
 
 const main = async () => {
   console.time("canvas");
@@ -42,26 +42,39 @@ const main = async () => {
     ctx.drawImage(image, 0, 0, 960, 540);
     console.timeEnd("jpeg");
     console.time("detect");
-    const predictions = await model.detect(canvas, 5);
+    const predictions = await model.detect(canvas, 30);
     console.timeEnd("detect");
     console.time("write");
-    for (const prediction of predictions) {
-      bufferCanvas.width = prediction.bbox[2];
-      bufferCanvas.height = prediction.bbox[3];
+    const interestedPredictions = predictions.filter(prediction =>
+      INTERESTED_CLASSES.includes(prediction.class)
+    );
+    for (const prediction of interestedPredictions) {
+      bufferCanvas.width = prediction.bbox[2] * CROP_PADDING_RAIO;
+      bufferCanvas.height = prediction.bbox[3] * CROP_PADDING_RAIO;
+
       BufferCtx.drawImage(
         canvas,
-        prediction.bbox[0],
-        prediction.bbox[1],
-        prediction.bbox[2],
-        prediction.bbox[3],
+        prediction.bbox[0] -
+          (prediction.bbox[2] * CROP_PADDING_RAIO - prediction.bbox[2]) / 2,
+        prediction.bbox[1] -
+          (prediction.bbox[3] * CROP_PADDING_RAIO - prediction.bbox[3]) / 2,
+        prediction.bbox[2] +
+          (prediction.bbox[2] * CROP_PADDING_RAIO - prediction.bbox[2]),
+        prediction.bbox[3] +
+          (prediction.bbox[3] * CROP_PADDING_RAIO - prediction.bbox[3]),
         0,
         0,
-        prediction.bbox[2],
-        prediction.bbox[3]
+        prediction.bbox[2] * CROP_PADDING_RAIO,
+        prediction.bbox[3] * CROP_PADDING_RAIO
       );
 
+      const counter = counters[prediction.class]
+        ? counters[prediction.class] + 1
+        : 1;
+      counters[prediction.class] = counter;
+
       fs.writeFileSync(
-        `./detects/${++counter}.jpg`,
+        `./detects/${prediction.class}-${counter}.jpg`,
         bufferCanvas
           .toDataURL("image/jpeg")
           .replace(/^data:image\/jpeg;base64,/, ""),
