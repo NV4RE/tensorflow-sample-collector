@@ -19,8 +19,8 @@ let counters = {};
 
 const main = async () => {
   console.time("canvas");
-  const canvas = createCanvas(960, 540);
-  const bufferCanvas = createCanvas(960, 540);
+  const canvas = createCanvas(1920, 1080);
+  const bufferCanvas = createCanvas(1920, 1080);
 
   const ctx = canvas.getContext("2d");
   const BufferCtx = bufferCanvas.getContext("2d");
@@ -39,7 +39,7 @@ const main = async () => {
   for (const file of files) {
     console.time("jpeg");
     const image = await loadImage(`./samples/${file.name}`);
-    ctx.drawImage(image, 0, 0, 960, 540);
+    ctx.drawImage(image, 0, 0, 1920, 1080);
     console.timeEnd("jpeg");
     console.time("detect");
     const predictions = await model.detect(canvas, 30);
